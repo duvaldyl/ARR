@@ -9,7 +9,7 @@
 #include <MeMegaPi.h>
 
 //Constants and states the robot can be in
-#define SPEED 100
+#define SPEED 255
 #define NOSTATE 0
 #define OBSTACLEAVOIDANCE 1
 #define LINEFOLLOWER 2
@@ -88,13 +88,61 @@ void stop() {
   motor4.stop();
 }
 
+void yellow() {
+  rightLED.setColor(0, 255, 255, 0);
+  leftLED.setColor(0, 255, 255, 0);
+  leftLED.show();
+  rightLED.show();
+}
+
+void purple() {
+  rightLED.setColor(0, 204, 0, 204);
+  leftLED.setColor(0, 204, 0, 204);
+  leftLED.show();
+  rightLED.show();
+}
+
+void red() {
+  rightLED.setColor(0, 255, 0, 0);
+  leftLED.setColor(0, 255, 0, 0);
+  leftLED .show();
+  rightLED .show();
+}
+
+void green() {
+  rightLED.setColor(0, 0, 255, 0);
+  leftLED.setColor(0, 0, 255, 0);
+  leftLED.show();
+  rightLED.show();
+}
+
+void blue() {
+  rightLED.setColor(0, 0, 0, 255);
+  leftLED.setColor(0, 0, 0, 255);
+  leftLED.show();
+  rightLED.show();
+}
+
+void rainbow() {
+  int count = 0;
+  while(count < 10) {
+    red();
+    delay(100);
+    green();
+    delay(100);
+    blue();
+    delay(100);
+    count++;
+  }
+}
+
+
+
 //Code for obstacle avoidance
 void obstacleAvoidance() {
-   while(!leftBar.isBarried() && !rightBar.isBarried()) {
+   if(!leftBar.isBarried() && !rightBar.isBarried()) {
     forward();
-  }
-
-  if(leftBar.isBarried() && rightBar.isBarried()) {
+  } else if(leftBar.isBarried() && rightBar.isBarried()) {
     left();
   } else if(rightBar.isBarried()) {
     backward();
@@ -111,11 +159,9 @@ void obstacleAvoidance() {
 
 //Code for following the line
 void lineFollower() {
-   while(leftLine.onLine() && rightLine.onLine()) {
+   if(leftLine.onLine() && rightLine.onLine()) {
     forward();
-  }
-
-  if(!leftLine.onLine() && !rightLine.onLine()) {
+  } else if(!leftLine.onLine() && !rightLine.onLine()) {
     rotateLeft();
   } else if(!leftLine.onLine()) {
     rotateRight();
@@ -124,37 +170,73 @@ void lineFollower() {
   }
 }
 
+bool pressedThreeTimes() {
+  int currentTime = millis();
+  int count = 0;
+    while(millis() - currentTime < 500) {
+      if(rightCol.isCollision() && millis() - currentTime > 100) {
+        count++;
+        currentTime = millis();
+      }
+
+      if(count == 3) {
+        return true;
+      }
+    }
+
+    return false;
+
+}
+
+bool swipeLeft() {
+  if(leftBar.isBarried()) {
+    int currentTime = millis();
+    while(millis() - currentTime < 500) {
+      if(rightBar.isBarried()) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+bool swipeRight() {
+  if(rightBar.isBarried()) {
+    int currentTime = millis();
+    while(millis() - currentTime < 500) {
+      if(leftBar.isBarried()) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 void setup() {
-  currentState = NOSTATE;
+  currentState = LINEFOLLOWER;
 }
 
 void loop() {
 
-  /**
-  Left Collision Sensor -- Runs the obstacle avoidance code (Magenta)
-  Right Collision Sensor -- Runs the line following code (Blue)
-  Both Sensors -- Stops the robot (White)
-  **/
-
-  if(leftCol.isCollision() && rightCol.isCollision()) {
-    currentState = NOSTATE;
-  } else if(leftCol.isCollision()) {
-    currentState = OBSTACLEAVOIDANCE;
-  } else if(rightCol.isCollision()) {
-    currentState = LINEFOLLOWER;
-  }
-
-  if(currentState == OBSTACLEAVOIDANCE) {
-    leftLED.setColor(255, 0, 255);
-    leftLED.show();
-    obstacleAvoidance();
-  } else if(currentState == LINEFOLLOWER) {
-    leftLED.setColor(0, 255, 255);
-    leftLED.show();
+  if(currentState == LINEFOLLOWER) {
     lineFollower();
-  } else if(currentState == NOSTATE) {
-    leftLED.setColor(255, 255, 255);
-    leftLED.show();
+    purple();
+  } else if(currentState == OBSTACLEAVOIDANCE) {
+    obstacleAvoidance();
+    yellow();
+  } else if(currentState = NOSTATE) {
     stop();
   }
+
+  if(pressedThreeTimes()) {
+    currentState = OBSTACLEAVOIDANCE;
+  }
+
+  if(swipeLeft()) {
+    rainbow();
+    currentState = NOSTATE;
+  }
+
 }
