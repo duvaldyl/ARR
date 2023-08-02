@@ -9,12 +9,13 @@
 #include <MeMegaPi.h>
 
 //Constants and states the robot can be in
-#define SPEED 255
+#define SPEED 100
 #define NOSTATE 0
 #define OBSTACLEAVOIDANCE 1
 #define LINEFOLLOWER 2
+#define SENTRY 3
 
-int currentState;
+char correctSequence[] = {'l', 'r', 'l', 'l'};
 
 //Creating object for each sensor/motor
 MeNewRGBLed leftLED(A13,4);
@@ -123,14 +124,44 @@ void blue() {
   rightLED.show();
 }
 
-void rainbow() {
+void white() {
+  rightLED.setColor(0, 255, 255, 255);
+  leftLED.setColor(0, 255, 255, 255);
+  leftLED.show();
+  rightLED.show();
+}
+
+void off() {
+  rightLED.setColor(0, 0, 0, 0);
+  leftLED.setColor(0, 0, 0, 0);
+  leftLED.show();
+  rightLED.show();
+}
+
+void realRobot() {
+  purple();
+  delay(100);
+  yellow();
+  delay(100);
+}
+
+void flashSuccess() {
+  int count = 0;
+  while(count < 10) {
+    green();
+    delay(100);
+    off();
+    delay(100);
+    count++;
+  }
+}
+
+void flashFail() {
   int count = 0;
   while(count < 10) {
     red();
     delay(100);
-    green();
-    delay(100);
-    blue();
+    off();
     delay(100);
     count++;
   }
@@ -159,39 +190,39 @@ void obstacleAvoidance() {
 
 //Code for following the line
 void lineFollower() {
-   if(leftLine.onLine() && rightLine.onLine()) {
-    forward();
-  } else if(!leftLine.onLine() && !rightLine.onLine()) {
-    rotateLeft();
-  } else if(!leftLine.onLine()) {
+  if(!leftLine.onLine()) {
     rotateRight();
   } else if(!rightLine.onLine()) {
     rotateLeft();
+  } else {
+    forward();
   }
 }
 
 bool pressedThreeTimes() {
-  int currentTime = millis();
-  int count = 0;
+  if(rightCol.isCollision()) {
+    int currentTime = millis();
+    int count = 1;
     while(millis() - currentTime < 500) {
-      if(rightCol.isCollision() && millis() - currentTime > 100) {
+      if(rightCol.isCollision() && millis() - currentTime > 200) {
         count++;
         currentTime = millis();
-      }
-
-      if(count == 3) {
-        return true;
+        if(count == 3) {
+          return true;
+        }
       }
     }
 
     return false;
-
+  } else {
+    return false;
+  }
 }
 
 bool swipeLeft() {
   if(leftBar.isBarried()) {
     int currentTime = millis();
-    while(millis() - currentTime < 500) {
+    while(millis() - currentTime < 150) {
       if(rightBar.isBarried()) {
         return true;
       }
@@ -204,7 +235,7 @@ bool swipeLeft() {
 bool swipeRight() {
   if(rightBar.isBarried()) {
     int currentTime = millis();
-    while(millis() - currentTime < 500) {
+    while(millis() - currentTime < 250) {
       if(leftBar.isBarried()) {
         return true;
       }
@@ -214,29 +245,99 @@ bool swipeRight() {
   return false;
 }
 
+bool checkSequence() {
+  int count = 0;
+  char sequence[4];
+
+  while(count != 4) {
+    if(swipeLeft()) {
+      sequence[count] = 'l';
+      count++;
+    } else if(swipeRight()) {
+      sequence[count] = 'r';
+      count++;
+    }
+  }
+
+  for(int i = 0; i < sizeof(sequence); i++) {
+    if(sequence[i] != correctSequence[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void setup() {
-  currentState = LINEFOLLOWER;
+
 }
 
 void loop() {
 
-  if(currentState == LINEFOLLOWER) {
+  while(!pressedThreeTimes()) {
     lineFollower();
     purple();
-  } else if(currentState == OBSTACLEAVOIDANCE) {
+  }
+
+  while(!swipeLeft() && !swipeRight()) {
     obstacleAvoidance();
     yellow();
-  } else if(currentState = NOSTATE) {
-    stop();
+  }
+  
+  stop();
+  white();
+  delay(3000);
+  realRobot();
+  realRobot();
+  realRobot();
+  realRobot();
+  realRobot();
+  realRobot();
+  realRobot();
+  realRobot();
+  realRobot();
+  realRobot();
+  realRobot();
+  realRobot();
+  realRobot();
+  realRobot();
+  realRobot();
+  realRobot();
+  realRobot();
+  realRobot();
+  off();
+  delay(3000);
+
+  bool correct = false;
+  while(!correct) {
+    white();
+    if(checkSequence()) {
+      correct = true;
+      flashSuccess();
+    } else {
+      flashFail();
+    }
   }
 
-  if(pressedThreeTimes()) {
-    currentState = OBSTACLEAVOIDANCE;
+
+  while(!rightCol.isCollision()) {
+    green();
+  }
+  
+  off();
+  delay(1000);
+
+  while(!rightCol.isCollision()) {
+    white();
   }
 
-  if(swipeLeft()) {
-    rainbow();
-    currentState = NOSTATE;
+  off();
+  delay(1000);
+
+  while(!rightCol.isCollision()) {
+    purple();
+    lineFollower();
   }
+
 
 }
